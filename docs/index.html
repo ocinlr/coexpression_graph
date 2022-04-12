@@ -1,0 +1,306 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>Welcome to coexpressiongraph’s documentation! &#8212; coexpressiongraph  documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <p>—</p>
+<section id="module-coexpression_graph">
+<span id="welcome-to-coexpressiongraph-s-documentation"></span><h1>Welcome to coexpressiongraph’s documentation!<a class="headerlink" href="#module-coexpression_graph" title="Permalink to this headline">¶</a></h1>
+<section id="module-for-coexpression-network-extraction">
+<span id="module-coexpression"></span><h2><strong>Module for Coexpression Network Extraction</strong><a class="headerlink" href="#module-for-coexpression-network-extraction" title="Permalink to this headline">¶</a></h2>
+<p>This module takes as input several gene profiles and calculates an undirected
+graph based on the coexpression between them, calculated using one of the following metrics:</p>
+<ul class="simple">
+<li><p>Pearson correlation coefficient (‘PCC’)</p></li>
+<li><p>Biweight Midcorrelation (‘BICOR’)</p></li>
+<li><p>Distance correlation (‘DCORR’)</p></li>
+</ul>
+<section id="general-algorithm">
+<span id="algorithm"></span><h3>General algorithm<a class="headerlink" href="#general-algorithm" title="Permalink to this headline">¶</a></h3>
+<p>The general idea behind the module can be summarized as follows:</p>
+<ol class="arabic simple">
+<li><p>Read expression file and apply log_10 if required</p></li>
+<li><p>Calculate coexpression metric (in parallel using multiprocessing)</p></li>
+<li><p>Calculate bins for quantification</p></li>
+<li><p>Generating auxiliary plots (optional)</p></li>
+<li><p>Finding threshold based on density and marginal addition of nodes</p></li>
+<li><p>Apply threshold to find coexpression graph</p></li>
+</ol>
+</section>
+<section id="reading-the-input-file">
+<span id="input-file"></span><h3>Reading the input file<a class="headerlink" href="#reading-the-input-file" title="Permalink to this headline">¶</a></h3>
+<p>The input file for <em>coexpression_graph</em> is loaded using <em>pandas</em>, which infers automatically if
+the file has headers. However, there is a possibility to specify the file delimiter using the parameter
+<strong>sep</strong>, which by default is <em>None</em>.</p>
+<p>It is also optional to apply a logarithm (base 10) to the expression values before calculating the correlation
+metric. The corresponding parameter for this effect is <strong>lognormalize_input</strong>. By default, this option is set to <em>False</em>.</p>
+</section>
+<section id="calculating-the-threshold">
+<span id="threshold"></span><h3>Calculating the Threshold<a class="headerlink" href="#calculating-the-threshold" title="Permalink to this headline">¶</a></h3>
+<p>The selection of the threshold is calculated as follows:</p>
+<ol class="arabic simple">
+<li><p>The selected metric is calculated for all posible pairs of gene profiles.</p></li>
+<li><p>A number of bins is created and the network properties are quantified using those bins. The size of each bin is 0.01, ranging from the minimum to the maximum values calculated previously.</p></li>
+<li><p>Two bins are of importance: the one where the minimum of network density occurs, and the one which has a higher increase in the number of nodes included in the network.</p></li>
+<li><p>The minimum of these two bin values is selected as the threshold.</p></li>
+<li><p>Those pairs whose metric value is greater than or equal to the threshold belong to the coexpression graph.</p></li>
+</ol>
+<p>The idea behind the threshold selection is based on the following papers:</p>
+<ul class="simple">
+<li><p>van Verk, M. C., Bol, J. F., &amp; Linthorst, H. J. (2011). Prospecting for genes involved in transcriptional regulation of plant defenses, a bioinformatics approach. <em>BMC plant biology</em> , 11, 88. <a class="reference external" href="https://doi.org/10.1186/1471-2229-11-88">https://doi.org/10.1186/1471-2229-11-88</a></p></li>
+<li><p>Zhang, L., Yu, S., Zuo, K., Luo, L., &amp; Tang, K. (2012). Identification of gene modules associated with drought response in rice by network-based analysis. <em>PloS one</em> , 7(5), e33748. <a class="reference external" href="https://doi.org/10.1371/journal.pone.0033748">https://doi.org/10.1371/journal.pone.0033748</a></p></li>
+</ul>
+</section>
+<section id="saving-auxiliary-files">
+<span id="save-files"></span><h3>Saving auxiliary files<a class="headerlink" href="#saving-auxiliary-files" title="Permalink to this headline">¶</a></h3>
+<p>It is possible to save some files which can help in visualizing properties such as density,
+number of nodes, number of edges, etc. The parameter <strong>save_files</strong> is set by default to <em>None</em>,
+but can be set to a string indicating the path where the files should be stored.</p>
+<p>The stored files are:</p>
+<ul class="simple">
+<li><p><strong>Plots</strong>: The saved plots as a function of the metric value are the size of the greatest connected component (<em>{metric}-CCmaxsize.png</em>), the network density (<em>{metric}-Density.png</em>), the number of edges (<em>{metric}-Edges.png</em>) and the number of nodes (<em>{metric}-Nodes.png</em>).</p></li>
+<li><p><strong>Metric values</strong>: Files of the form <em>{metric}-{i}.txt</em> are generated, including the correlation information.</p></li>
+<li><p><strong>Coexpression graph</strong>: The file <em>{metric}trimmed.csv</em> contains the generated network, after the threshold.</p></li>
+<li><p><strong>Bins</strong>: The file <em>{metric}-bins.csv</em> can be used to generate the plots again. It includes a header and a line for each bin, specifying the corresponding values.</p></li>
+</ul>
+<div class="line-block" id="api-coex">
+<div class="line"><br /></div>
+</div>
+</section>
+<section id="api-reference">
+<h3><strong>API Reference</strong><a class="headerlink" href="#api-reference" title="Permalink to this headline">¶</a></h3>
+<dl class="py function">
+<dt class="sig sig-object py" id="coexpression_graph.coexpression_graph">
+<span class="sig-prename descclassname"><span class="pre">coexpression_graph.</span></span><span class="sig-name descname"><span class="pre">coexpression_graph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metric</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'PCC'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_files</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lognormalize_input</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coexpression_graph.coexpression_graph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a file containing n rows of gene expression profiles with m accessions each, it
+applies the given metric (‘PCC’, ‘BICOR’, ‘DCORR’) to calculate a coexpression matrix.
+Finally, a histogram is calculated with bins of 0.01 and a threshold is calculated to
+create a coexpression graph.</p>
+<p>The threshold is obtained based on two references:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>The bin which causes minimum network density</p></li>
+<li><p>The bin which has the highest marginal addition of nodes to the network, that is, whose difference in nodes with the previous bin is maximal.</p></li>
+</ol>
+</div></blockquote>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file</strong> (<em>str</em>) – Path to the file containing the expression profiles</p></li>
+<li><p><strong>metric</strong> (<em>str</em>) – Metric to be applied to correlate expression profiles: ‘PCC’ for Pearson
+correlation coefficient, ‘BICOR’ for Biweighted Midcorrelation, and ‘DCORR’ for Distance
+correlation. Default: ‘PCC’</p></li>
+<li><p><strong>save_files</strong> (<em>None</em><em> or </em><em>str</em>) – <p>Wether the intermediate files should be stored in disk. If value is
+_None_, files are not saved in disk. Otherwise, a string indicating the path should be
+given. The intermediate files which are stored are:</p>
+<ul>
+<li><p>Given a expression matrix with n genes, each with m expression values, <code class="docutils literal notranslate"><span class="pre">n-1</span></code> files with the name <em>{metric}-{i}.txt</em> are stored containing the upper diagonal coexpression matrix. Each file will have the coexpression values using <strong>metric</strong> for gene <em>i</em> with every other <em>j</em> genes, for 0 &lt;= i &lt; j &lt; n.</p></li>
+<li><p>File <em>{metric}-{i}.txt</em> (e.g. PCC-0.txt) will be a comma-separated file including each <em>j</em> and the coexpression value between <em>i</em> and <em>j</em>.</p></li>
+<li><p>Plots of the form <em>{metric}-{parameter}.png</em>, where parameter can be Density, CCmaxsize, Nodes and Edges</p></li>
+<li><p>The trimmed network: <em>{metric}trimmed.csv</em>.</p></li>
+</ul>
+</p></li>
+<li><p><strong>lognormalize_input</strong> (<em>bool</em>) – Whether a logarithm base 10 will be applied to expression values before
+calculating the coexpression metric</p></li>
+<li><p><strong>num_threads</strong> (<em>int</em>) – Number of processes to be used in parallel when calculating coexpression.</p></li>
+<li><p><strong>sep</strong> (<em>None</em><em> or </em><em>str</em>) – The string used to separate values.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>E: The coexpression matrix as an edge list. Each value in the list will be a tuple with
+three values: the first two values are the zero-indexed positions of the genes and the third
+value is the corresponding coexpression value between the gene expression profiles.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>List[tuple]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+<span class="target" id="module-affinity_matrix"></span><div class="line-block">
+<div class="line"><br /></div>
+</div>
+<section id="module-for-affinity-matrix-computation">
+<span id="affinity"></span><h2><strong>Module for Affinity Matrix Computation</strong><a class="headerlink" href="#module-for-affinity-matrix-computation" title="Permalink to this headline">¶</a></h2>
+<p>Create new distance matrix using information from the gene co-expression
+network and information from the associations between genes and functions.
+The new distance between two genes will be the mean of the weight between
+two nodes and the proportion of shared functions.
+Please load the coexpression data without labels. Dataframe between genes
+and functions gene_by_func must have gene ID in the first column and an
+array of functions in the second column.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<section id="api">
+<span id="id1"></span><h3><strong>API Reference</strong><a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h3>
+<dl class="py function">
+<dt class="sig sig-object py" id="affinity_matrix.affinity_matrix">
+<span class="sig-prename descclassname"><span class="pre">affinity_matrix.</span></span><span class="sig-name descname"><span class="pre">affinity_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">edgelist</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gene_by_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#affinity_matrix.affinity_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>The maximum and minimum values of co-expression are saved and two dictionaries are created to optimize searches</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>edgelist</strong> (<em>DataFrame</em>) – Coexpression matrix as an edge list. Each value in the list will be a tuple with
+three values: the first two values are the genes associated and the third value is the corresponding
+coexpression value between them. <em>source</em> and <em>target</em> are of type <em>int</em>, while <em>score</em> is <em>float</em></p></li>
+<li><p><strong>gene_by_func</strong> (<em>DataFrame</em>) – The matrix with the data of functions associated with a gene,
+this matrix must have gene ID in the first column and an array of all its
+functional annotations in the second column identified with the GO term.</p></li>
+<li><p><strong>normalize</strong> (<em>bool</em>) – The coexpression values given by the edge list are normalized.</p></li>
+<li><p><strong>save</strong> (<em>bool</em>) – The affinity matrix is saved as a csv archive, else return the new variable.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The affinity matrix as a new relationship value between genes is returned.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Matrix</p>
+</dd>
+</dl>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="affinity_matrix.test">
+<span class="sig-prename descclassname"><span class="pre">affinity_matrix.</span></span><span class="sig-name descname"><span class="pre">test</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#affinity_matrix.test" title="Permalink to this definition">¶</a></dt>
+<dd><p>Charge the matrix with the data of functions associated with a gene,
+this matrix must have gene ID in the first column and an array of all it’s
+functions in the second column</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</dd></dl>
+
+</section>
+</section>
+<div class="toctree-wrapper compound">
+</div>
+</section>
+<section id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">coexpressiongraph</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Welcome to coexpressiongraph’s documentation!</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-for-coexpression-network-extraction"><strong>Module for Coexpression Network Extraction</strong></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#general-algorithm">General algorithm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reading-the-input-file">Reading the input file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#calculating-the-threshold">Calculating the Threshold</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#saving-auxiliary-files">Saving auxiliary files</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference"><strong>API Reference</strong></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-for-affinity-matrix-computation"><strong>Module for Affinity Matrix Computation</strong></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#api"><strong>API Reference</strong></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2022, Nicolas Lopez, Miguel Romero.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
